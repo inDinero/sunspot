@@ -234,13 +234,13 @@ module Sunspot #:nodoc:
         #
         # ==== Examples
         #   
-        #   # index in batches of 50, commit after each
+        #   # index in batches of 50
         #   Post.index 
         #
-        #   # index all rows at once, then commit
+        #   # index all rows at once
         #   Post.index(:batch_size => nil) 
         #
-        #   # index in batches of 50, commit when all batches complete
+        #   # index in batches of 50
         #   Post.index(:batch_commit => false) 
         #
         #   # include the associated +author+ object when loading to index
@@ -259,18 +259,20 @@ module Sunspot #:nodoc:
             self.includes(options[:include]).find_in_batches(options.slice(:batch_size, :start)) do |records|
               
               solr_benchmark(options[:batch_size], batch_counter += 1) do
-                Sunspot.index(records.select { |model| model.indexable? })
-                Sunspot.commit if options[:batch_commit]
+                Sunspot.index(records.select(&:indexable?))
+                # Do not manually commit. We should rely on Solr auto-commit instead.
+                # Sunspot.commit if options[:batch_commit]
               end
 
               options[:progress_bar].increment!(records.length) if options[:progress_bar]
             end
           else
-            Sunspot.index! self.includes(options[:include]).select(&:indexable?)
+            Sunspot.index self.includes(options[:include]).select(&:indexable?)
           end
 
           # perform a final commit if not committing in batches
-          Sunspot.commit unless options[:batch_commit]
+          # Do not manually commit. We should rely on Solr auto-commit instead.
+          # Sunspot.commit unless options[:batch_commit]
         end
 
         # 
